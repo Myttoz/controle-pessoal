@@ -1,0 +1,61 @@
+name: Gerar instaladores (Linux + Windows)
+
+# Como usar:
+#   GitHub → aba "Actions" → "Gerar instaladores" → "Run workflow".
+#   Ao terminar, baixe os arquivos na seção "Artifacts".
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: ${{ matrix.nome }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - nome: Linux (AppImage + .deb)
+            os: ubuntu-latest
+            alvo: linux
+          - nome: Windows (.exe)
+            os: windows-latest
+            alvo: win
+
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ganhos-gastos
+
+    steps:
+      - name: Baixar o código
+        uses: actions/checkout@v4
+
+      - name: Preparar Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+          cache-dependency-path: ganhos-gastos/package-lock.json
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Gerar instalador Linux
+        if: matrix.alvo == 'linux'
+        run: npm run dist:linux
+
+      - name: Gerar instalador Windows
+        if: matrix.alvo == 'win'
+        run: npm run dist:win
+
+      - name: Publicar artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: controle-pessoal-${{ matrix.alvo }}
+          path: |
+            ganhos-gastos/dist/*.AppImage
+            ganhos-gastos/dist/*.deb
+            ganhos-gastos/dist/*.exe
+          if-no-files-found: error

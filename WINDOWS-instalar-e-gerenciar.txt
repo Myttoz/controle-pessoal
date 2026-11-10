@@ -1,0 +1,249 @@
+================================================================================
+ WINDOWS — Instalar o OpenCode e gerenciar o programa "Ganhos & Gastos"
+================================================================================
+Gerado em: 03/11/2026 · destino: seu PC/notebook WINDOWS em casa
+
+Sumário:
+  PARTE 1 — Instalar o OpenCode no Windows (3 formas; recomendo a B)
+  PARTE 2 — Preparar o Windows para editar/rodar o programa (Node.js)
+  PARTE 3 — Levar o programa para o Windows (pendrive/nuvem)
+  PARTE 4 — Rodar o programa JÁ INSTALADO (instaladores)
+  PARTE 5 — Configuração (.env, API_KEY, URL)
+  PARTE 6 — Testar se a API está respondendo (sem sair do navegador)
+  PARTE 7 — Backups (o que existe e onde olhar)
+  PARTE 8 — Problemas comuns e soluções
+  PARTE 9 — Checklist rápido ao chegar em casa
+
+================================================================================
+ PARTE 1 — INSTALAR O OPENCODE NO WINDOWS
+================================================================================
+Obs. importante: gerenciadores de pacote do Windows (winget, scoop, choco)
+NÃO são suportados. Use npm, o binário ou o app desktop (abaixo).
+
+---------------------------------------
+ OPÇÃO A — App Desktop (mais fácil, interface gráfica)
+---------------------------------------
+1. Baixe o instalador:
+   https://opencode.ai/update/api/latest/desktop/opencode/opencode-desktop-win-x64.exe
+2. Execute o arquivo .exe e instale (próximo → próximo → instalar).
+3. Abra o OpenCode Desktop, aponte para a pasta do projeto
+   (ex.: C:\Users\SEU_NOME\Documents\APP ou a pasta que você copiar).
+4. Faça login quando pedido.
+
+---------------------------------------
+ OPÇÃO B — CLI no terminal (RECOMENDADO: é o fluxo usado aqui no trabalho)
+---------------------------------------
+1. Instale o Node.js LTS (ele também serve para editar o programa — Parte 2):
+   https://nodejs.org  → "Windows Installer (x64)" → executar → instalar.
+   (Marque a opção "Add to PATH" — é o padrão.)
+
+2. Abra o Terminal (Windows + R → digite "terminal" → Enter) e rode:
+
+        npm install -g @opencode/cli
+
+3. Confira se instalou:
+
+        opencode --version
+
+   Tem que aparecer a versão. Se der "não reconhecido", feche e abra o
+   terminal de novo (às vezes o PATH só atualiza em janela nova).
+
+4. Vá até a pasta do projeto e inicie:
+
+        cd C:\Users\SEU_NOME\Documents\APP
+        opencode
+
+5. Dentro da interface, rode o comando:
+
+        /connect
+
+   Escolha o provedor e entre com a MESMA CONTA que você usa aqui no
+   trabalho. Assim você tem os mesmos modelos e a mesma assinatura.
+
+---------------------------------------
+ OPÇÃO C — Binário avulso (sem Node)
+---------------------------------------
+1. Baixe (x64, que é o caso dos PCs comuns):
+   https://opencode.ai/update/api/latest/cli/opencode/opencode-windows-x64.zip
+2. Descompacte numa pasta fixa, ex.:  C:\opencode
+   (deve sobrar o arquivo C:\opencode\opencode.exe)
+3. Adicione ao PATH:
+   Configurações → Sistema → Informações avançadas → Variáveis de ambiente
+   → variável "Path" → Novo → cole  C:\opencode  → OK → OK.
+4. Abra um terminal NOVO e digite:  opencode --version
+
+---------------------------------------
+ Levar suas preferências de casa/loja de trabalho (opcional)
+---------------------------------------
+No Linux, sua config fica em:  ~/.config/opencode/
+Copie essa pasta para o Windows em:  C:\Users\SEU_NOME\.config\opencode\
+(tema, atalhos, modelo padrão…). Credenciais você loga de novo via /connect.
+
+================================================================================
+ PARTE 2 — PREPARAR O WINDOWS PARA EDITAR O PROGRAMA
+================================================================================
+1. Node.js LTS (se escolheu a Opção A ou C, instale agora):
+   https://nodejs.org → Windows Installer (x64) → executar → instalar.
+   Verifique:   node -v   e   npm -v  (tem que mostrar os números).
+
+2. (Opcional) Git for Windows — útil se um dia quiser baixar o código por
+   repositório: https://git-scm.com/download/win
+
+3. Terminais: use o "Terminal" padrão do Windows (PowerShell). Tudo que é
+   comando npm funciona igual ao Linux.
+
+================================================================================
+ PARTE 3 — LEVAR O PROGRAMA PARA O WINDOWS (código-fonte)
+================================================================================
+O que NÃO funciona: simplesmente copiar a pasta e rodar. O que falta:
+o Node.js do Linux não roda no Windows.
+
+PASSO A PASSO:
+1. Leve a pasta  ganhos-gastos  (pendrive ou nuvem — o .env vai junto).
+   - No pendrive, leve a pasta INTEIRA com o .env dentro.
+2. Cole no Windows em algum lugar fixo, ex.:  C:\Users\SEU_NOME\Documents\APP\ganhos-gastos
+3. APAGUE a pasta  node_modules  dentro dela (binários do Linux não servem).
+4. Abra o terminal na pasta e rode:
+
+        npm install
+
+   (baixa as dependências para o Windows — uma vez só; deixa o pendrive de
+   volta, depois não precisa mais)
+
+5. Para rodar em modo desenvolvimento (editar e testar):
+
+        npm run dev
+
+6. Para rodar a versão compilada:
+
+        npm run build
+        npm run start
+
+7. Atalho tipo o "despesas" do Linux: depois que o outro chat aplicar o
+   prompt (gera o despesas.bat), basta dar duplo clique em  despesas.bat
+   na pasta do projeto. Enquanto isso, use os comandos acima.
+
+O .env já vai junto na pasta — sem nada para configurar nesse caso.
+
+================================================================================
+ PARTE 4 — RODAR O PROGRAMA JÁ INSTALADO (sem Node, para qualquer PC)
+================================================================================
+Depois que os instaladores estiverem prontos (pasta release/ dentro do
+projeto), você leva só os arquivos do instalador no pendrive:
+
+  Windows:  "Ganhos & Gastos <versão> Setup.exe"
+            → duplo clique → Instalar → atalho no menu Iniciar e na área de
+              trabalho. Funciona em qualquer PC Windows, sem Node.
+
+  Linux Mint (portátil, sem instalar):
+            "Ganhos & Gastos <versão>.AppImage"
+            → clique direito → Propriedades → Permissões → "Permitir
+              execução como programa" → duplo clique para abrir.
+            (ou no terminal:  chmod +x "nome.AppImage"  e depois  ./nome.AppImage)
+
+  Linux Mint (instalado de verdade):
+            "ganhos-e-gastos_<versão>_amd64.deb"
+            → clique duplo → Instalar (ou:  sudo apt install ./arquivo.deb)
+
+O instalador já vem com a URL da API e a chave embutidas (mudança pedida no
+prompt) — abre e funciona direto, sem precisar de .env.
+
+================================================================================
+ PARTE 5 — CONFIGURAÇÃO (.env, API_KEY, URL)
+================================================================================
+O programa procura a configuração nesta ordem:
+  1. variável de ambiente do sistema (BASE_URL / API_KEY)
+  2. arquivo .env na pasta de onde o programa foi aberto
+  3. .env na pasta de dados do usuário (AppData)
+  4. valores embutidos no programa (URL já embutida; a chave passa a ser
+     embutida também depois que o prompt for aplicado)
+
+Dia a dia:
+  • Usando a pasta (edição): basta ter o .env na raiz da pasta — já vai junto.
+  • Usando o instalador: não precisa de .env nenhum.
+
+⚠ SEGURANÇA: o .env contém a API_KEY em texto puro. Pendrive perdido = chave
+  vazada. Se acontecer, troque a chave (Config.gs no editor do Apps Script →
+  nova versão → atualize o .env) e rode "testar-api" no Linux.
+
+================================================================================
+ PARTE 6 — TESTAR A API PELO NAVEGADOR (qualquer PC, sem ferramentas)
+================================================================================
+Abra no navegador (em aba anônima, para não herdar login do Google):
+
+  SUA_URL_EXEC?acao=teste
+      → OK: {"sucesso":true,"mensagem":"API funcionando.",…}
+      → ERRADO (segurança em risco): ainda responde sucesso SEM chave
+        → significa que a chave não foi publicada (ver PENDENCIAS.txt)
+
+  SUA_URL_EXEC?acao=teste&chave=SUA_CHAVE
+      → OK: {"sucesso":true,…}
+      → {"sucesso":false,"codigo":"NAO_AUTORIZADO"} = chave errada/no .env
+
+  SUA_URL_EXEC?acao=ano&ano=2027&chave=SUA_CHAVE
+      → OK: JSON grande com "meses", "salario", "extras", "resumo"
+
+  SUA_URL_EXEC?acao=abas&chave=SUA_CHAVE
+      → OK: lista das abas (Anual 2027, Salário 2027, JAN 27, …)
+
+URL completa (deixe em algum lugar seguro, tipo este txt):
+https://script.google.com/macros/s/AKfycbwGtqZPUDzsPFhvEq6LItsqTqnMLDXIAYJIRl5Wp4CXAiEYQgS1gvZy3FTCWbg5NbA/exec
+
+Significados de erro:
+  NAO_AUTORIZADO   → chave ausente/errada (não é problema de internet)
+  ACAO_INVALIDA    → versão ANTIGA da API publicada (falta nova versão)
+  302 p/ accounts.google.com → implantação voltou para "Somente eu"
+  demora de ~30s na 1ª chamada → normal (cold start), depois fica rápido
+
+================================================================================
+ PARTE 7 — BACKUPS (funcionam sem os seus PCs ligados)
+================================================================================
+Dois mecanismos, ambos NO GOOGLE (servidor):
+
+1. Planilha_modelo — modelo vazio (estrutura, fórmulas e dropdowns intactos,
+   dados zerados). É o seu "plantão": serve para recomeçar do zero ou conferir
+   como a planilha deve ficar. Criada uma única vez (passo4 no editor).
+
+2. Cópia automática — a cada 15 dias é criada uma cópia da planilha CHEIA:
+       "<nome da planilha> copia"          → mais recente
+       "<nome da planilha> copia anterior"  → reserva
+   No máximo 2 cópias; a velha é substituída (nunca acumula).
+   Roda no servidor do Google (gatilho diário às 3h, copia quando vence).
+
+Onde olhar: Google Drive → mesma pasta da planilha.
+Para restaurar: abra a cópia → Arquivo → Fazer uma cópia (ou baixar .xlsx).
+
+================================================================================
+ PARTE 8 — PROBLEMAS COMUNS E SOLUÇÕES
+================================================================================
+"Não é reconhecido como comando interno" (opencode/npm/node):
+  → reinicie o terminal; se persistir, refaça o passo do PATH.
+
+npm install falha ou instalações estranhas no Windows:
+  → apague node_modules e rode npm install de novo; rode o terminal como
+    Administrador se preciso.
+
+O app abre mas mostra "Não autorizado (HTTP 401/NAO_AUTORIZADO)":
+  → o .env não foi encontrado ou a chave mudou. Confira Parte 5/6.
+
+O app demora ~30s na primeira tela:
+  → cold start do Google Apps Script. Normal, acontece 1ª vez.
+
+O app diz "Ação GET desconhecida":
+  → a API publicada está com código antigo. Precisa de nova versão
+  (Implantar → Gerenciar implantações → ✏️ → Nova versão).
+
+Erro ao rodar npm run dev com "EBADENGINE" ou módulos faltando:
+  → node_modules veio do Linux. Apague e rode npm install (Parte 3).
+
+================================================================================
+ PARTE 9 — CHECKLIST RÁPIDO (ao chegar em casa)
+================================================================================
+[ ] Node.js LTS instalado (node -v mostra a versão)
+[ ] Pasta ganhos-gastos copiada (com o .env) e node_modules APAGADA
+[ ] npm install  (1 vez)
+[ ] npm run dev  (edita/testa)  ou  npm run build && npm start (compila)
+[ ] OpenCode instalado (Opção A, B ou C da Parte 1) e /connect com sua conta
+[ ] Teste da API pelo navegador (Parte 6) — confere se está tudo publicado
+[ ] (Opcional) .config/opencode copiado do Linux para as preferências
+================================================================================

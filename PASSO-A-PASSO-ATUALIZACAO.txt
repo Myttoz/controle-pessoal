@@ -1,0 +1,601 @@
+================================================================================
+ ATUALIZAÇÃO — Controle Pessoal
+ Versão WEB (GitHub Pages) + LINUX + WINDOWS + sincronização entre aparelhos
+================================================================================
+Gerado em: 10/11/2026
+Pasta do projeto: /home/infra/Documentos/Pessoal/APP
+Aplicativo:       /home/infra/Documentos/Pessoal/APP/ganhos-gastos
+
+O QUE ESTA VERSÃO ENTREGA
+  1. CORREÇÃO DAS FÉRIAS: vender 10 dias não diminui mais o total. O 1/3
+     constitucional agora entra também sobre o abono (dias vendidos).
+  2. SINCRONIZAÇÃO: Horas Extras, Férias, Manutenção, salário bruto e KM atual
+     passam a ficar guardados na planilha (aba DADOS_LOCAIS) e sincronizam
+     entre web, Linux e Windows.
+  3. MODO OFFLINE: se ficar sem internet, o app continua funcionando e envia
+     as alterações quando a conexão voltar. No desktop isso vale sempre; na
+     web, vale com a página já aberta (o navegador guarda os dados no
+     localStorage). Para abrir o site do zero sem internet, use o desktop ou
+     o backup JSON.
+  4. BACKUP EM ARQUIVO ÚNICO: exportar/importar um JSON com todos os dados
+     locais (bom para pendrive e para trocar de notebook).
+  5. VERSÃO WEB no GitHub Pages, instalador Linux (.AppImage e .deb) e
+     instalador Windows (.exe NSIS), todos gerados do MESMO código.
+  6. A API_KEY NÃO fica no app web nem nos instaladores. Quem injeta a chave
+     é o próprio Apps Script, no servidor, durante o proxy autenticado.
+
+IMPORTANTE
+  - Faça na ordem. Não pule etapas.
+  - A planilha existente NÃO muda de estrutura. A única aba nova é a
+    DADOS_LOCAIS, criada automaticamente na primeira sincronização.
+  - Não edite a aba DADOS_LOCAIS à mão. Ela guarda um JSON em pedaços.
+  - O repositório do GitHub precisa ser PÚBLICO para o GitHub Pages gratuito
+    funcionar. Por isso o .gitignore já bloqueia .env, Config.gs, planilhas,
+    backups e a pasta menina-do-sotao. Confira o "git status" antes de enviar.
+
+RESUMO RÁPIDO (quem faz o quê)
+  [JÁ FEITO]  Código, correção das férias, sincronização, offline, exportação,
+              workflows do GitHub Actions e instaladores Linux locais.
+  [VOCÊ]      Parte 1: testar as férias no app atualizado.
+  [VOCÊ]      Parte 2: atualizar 4 arquivos no Apps Script e publicar versão.
+  [VOCÊ]      Parte 3: criar o repositório no GitHub e enviar o código.
+  [VOCÊ]      Parte 4: ativar o GitHub Pages e abrir a versão web.
+  [VOCÊ]      Parte 5: gerar/baixar os instaladores pelo GitHub Actions.
+  [VOCÊ]      Parte 6: testar sincronização, offline e backup.
+  [VOCÊ]      Parte 7: copiar os instaladores para o pendrive.
+  [VOCÊ]      Parte 8/9: usar a solução de problemas e me enviar o resultado.
+
+================================================================================
+ PARTE 0 — O QUE JÁ FOI FEITO PELO ASSISTENTE (não precisa refazer)
+================================================================================
+
+CÓDIGO DO APP
+  - Adaptador web: src/renderer/services/apiWeb.ts (fetch + localStorage).
+  - Seleção automática desktop/web: src/renderer/services/ponte.ts.
+  - Sincronização/offline/backup: src/renderer/store/storeLocal.ts.
+  - Tela de sincronização: src/renderer/features/sincronizacao/.
+  - Login/verificação automática: src/renderer/App.tsx e storeAuth.ts.
+  - Build web separado: vite.web.config.ts (gera dist-web/).
+  - Correção das férias: src/renderer/lib/calculos.ts e FormFerias.tsx.
+
+BACKEND (Apps Script)
+  - codigo/DadosLocais.gs ......... grava o JSON em pedaços na aba DADOS_LOCAIS.
+  - codigo/Config.gs .............. ganhou DADOS_LOCAIS_ABA: 'DADOS_LOCAIS'.
+  - codigo/Auth.gs ................ proxy com dadosLocais/salvarDadosLocais.
+  - codigo/Api.gs ................. rotas GET dadosLocais e POST salvarDadosLocais.
+  - codigo/Config.example.gs ...... versão sem a chave, para o GitHub.
+
+DISTRIBUIÇÃO
+  - .github/workflows/deploy-web.yml .... publica a versão web no GitHub Pages.
+  - .github/workflows/build-desktop.yml . gera Linux e Windows no GitHub Actions.
+  - package.json ....................... scripts build:web, dist:linux e dist:win.
+  - .gitignore ......................... bloqueia segredos, planilhas e backups.
+
+INSTALADORES LINUX LOCAIS (já gerados com a correção das férias)
+  ganhos-gastos/dist/Controle Pessoal-1.0.0.AppImage
+  ganhos-gastos/dist/ganhos-e-gastos_1.0.0_amd64.deb
+  (O Windows será gerado pelo GitHub Actions na Parte 5.)
+
+CONFERÊNCIA TÉCNICA JÁ REALIZADA
+  - npm run typecheck ................ OK
+  - npm run build .................... OK
+  - npm run build:web ................ OK
+  - Conta de férias com salário 2.829,94:
+      30 dias integral ................ R$ 3.773,25
+      20 dias gozados + 10 vendidos ... R$ 3.773,26
+        (1 centavo a mais por arredondamento; o importante é não diminuir)
+      Abono de 10 dias ................ R$ 1.257,75
+        (R$ 943,31 de base + R$ 314,44 de 1/3)
+
+================================================================================
+ PARTE 1 — TESTE RÁPIDO DAS FÉRIAS (VOCÊ FAZ NO APP)
+================================================================================
+
+PASSO 1.1 — Instale/abra a versão nova
+  - A versão ANTIGA instalada no notebook não tem esta correção. Use a nova.
+  - Linux: instale o .deb novo ou execute o .AppImage novo (veja 5.5).
+  - Web: abra a URL do GitHub Pages depois da Parte 4.
+  - Se estiver testando pelo código: npm run dev dentro de ganhos-gastos.
+
+PASSO 1.2 — Confira o salário
+  1. Abra a tela Férias.
+  2. No painel de configuração, informe o salário bruto 2829.94.
+  3. Confira também os valores de hora 50% e 100% no painel (devem aparecer).
+
+PASSO 1.3 — Teste 30 dias integral
+  1. Clique em "Nova retirada".
+  2. Em "Dias de férias retirados", escolha "30 dias (integral)".
+  3. Em "Dias vendidos (abono)", deixe 0.
+  4. O Total a receber deve ficar em R$ 3.773,25 (aproximado).
+
+PASSO 1.4 — Teste 20 dias + 10 vendidos
+  1. Ainda no formulário, escolha "20 dias (10 vendidos)".
+  2. O campo "Dias vendidos" deve ir sozinho para 10.
+  3. O Total a receber deve ficar em R$ 3.773,26 (1 centavo a mais que o
+     integral por arredondamento; o importante é NÃO diminuir).
+  4. A prévia deve mostrar:
+       Férias gozadas (+1/3): R$ 2.515,51
+         20 dias · R$ 1.886,63 + 1/3 R$ 628,88
+       Abono vendidos (+1/3): R$ 1.257,75
+         10 dias · R$ 943,31 + 1/3 R$ 314,44
+       Total a receber: R$ 3.773,26
+  5. Se o total continuar menor que o integral, pare e me avise com um print.
+
+OBSERVAÇÕES
+  - Registros antigos são recalculados automaticamente; não precisa migrar.
+  - O formulário agora limita os dias vendidos a 10 e também a (30 − dias
+    gozados), para não pagar 40 dias por um período de 30.
+
+================================================================================
+ PARTE 2 — GOOGLE APPS SCRIPT (VOCÊ FAZ NO EDITOR)
+================================================================================
+
+ATENÇÃO À ORDEM: atualize os 4 arquivos e só depois publique a nova versão.
+
+PASSO 2.1 — Abra o editor
+  1. Abra a planilha "Ganhos-Gastos 2027" no Google Sheets.
+  2. Menu: Extensões → Apps Script.
+
+PASSO 2.2 — Atualize o Config.gs
+  1. Abra o arquivo Config.gs no editor.
+  2. Selecione TODO o conteúdo e apague.
+  3. Abra no computador:
+       /home/infra/Documentos/Pessoal/APP/codigo/Config.gs
+  4. Copie TODO o conteúdo e cole no editor.
+  5. Salve (Ctrl+S).
+  6. Confira se a linha abaixo existe perto do fim:
+       DADOS_LOCAIS_ABA: 'DADOS_LOCAIS'
+  7. Confira se a linha da API_KEY continua preenchida com a chave verdadeira
+     (a mesma que já estava no arquivo). NÃO apague e NÃO troque.
+     (Esse arquivo NÃO vai para o GitHub; ele está bloqueado no .gitignore.
+      Por isso a chave nunca deve ser colada em arquivos que vão para o repo.)
+
+PASSO 2.3 — Adicione o DadosLocais.gs
+  1. No editor, clique em "+" ao lado de "Arquivos" → "Script".
+  2. Nomeie exatamente como: DadosLocais
+  3. Apague o conteúdo padrão.
+  4. Cole TODO o conteúdo de:
+       /home/infra/Documentos/Pessoal/APP/codigo/DadosLocais.gs
+  5. Salve (Ctrl+S).
+
+PASSO 2.4 — Atualize o Auth.gs
+  1. Abra Auth.gs no editor.
+  2. Selecione tudo, apague e cole TODO o conteúdo de:
+       /home/infra/Documentos/Pessoal/APP/codigo/Auth.gs
+  3. Salve (Ctrl+S).
+  4. Confira se aparecem os casos:
+       case 'dadosLocais':
+       case 'salvarDadosLocais':
+
+PASSO 2.5 — Atualize o Api.gs
+  1. Abra Api.gs no editor.
+  2. Selecione tudo, apague e cole TODO o conteúdo de:
+       /home/infra/Documentos/Pessoal/APP/codigo/Api.gs
+  3. Salve (Ctrl+S).
+
+PASSO 2.6 — Publique uma NOVA versão
+  1. No editor: Implantar → Gerenciar implantações.
+  2. Na implantação do tipo "App da Web", clique no lápis (Editar).
+  3. Em "Versão", escolha "Nova versão".
+  4. Descrição: "Sincronizacao DadosLocais + correcao ferias".
+  5. Em "Quem tem acesso", escolha "Qualquer pessoa".
+     (Sem isso, a versão web não consegue falar com a API.)
+  6. Clique em "Implantar".
+  7. A URL continua a MESMA. Não precisa trocar nada no app.
+
+PASSO 2.7 — Confira se a nova versão está no ar
+  1. Volte ao app (web ou desktop novo) e faça login.
+  2. Abra a tela "Sincronização".
+  3. Clique em "Sincronizar agora".
+  4. O esperado é aparecer "Sincronizado" / "Tudo já estava sincronizado".
+  5. Se aparecer "Ação real desconhecida: dadosLocais", a nova versão não foi
+     publicada ou o Auth.gs/Api.gs não foi atualizado. Repita 2.4 a 2.6.
+
+OBSERVAÇÃO SOBRE A ABA DADOS_LOCAIS
+  - Ela é criada sozinha na primeira sincronização.
+  - Não crie à mão e não apague.
+  - Ela guarda o JSON em partes de 45.000 caracteres para não estourar o
+    limite de célula do Google Sheets.
+
+================================================================================
+ PARTE 3 — GITHUB: CRIAR O REPOSITÓRIO E ENVIAR O CÓDIGO (VOCÊ FAZ)
+================================================================================
+
+PASSO 3.1 — Confira o Git no computador
+  Abra o terminal e rode:
+     git --version
+  Se não existir, instale:
+     sudo apt update
+     sudo apt install git -y
+
+PASSO 3.2 — Configure seu nome e e-mail no Git (só na primeira vez)
+     git config --global user.name "Seu Nome"
+     git config --global user.email "seu-email-do-github@exemplo.com"
+
+PASSO 3.3 — Crie o repositório no GitHub
+  1. Entre em https://github.com e faça login.
+  2. Clique no "+" no canto superior direito → "New repository".
+  3. Repository name: controle-pessoal
+  4. Description: "Controle Pessoal — finanças, horas extras, férias e manutenção"
+  5. Visibility: Public
+     (O GitHub Pages gratuito só publica repositório público. A chave da API
+      NÃO está no repositório, então isso é seguro.)
+  6. NÃO marque "Add a README file", "Add .gitignore" nem "Choose a license".
+  7. Clique em "Create repository".
+  8. Na tela seguinte, copie a URL HTTPS, parecida com:
+       https://github.com/SEU_USUARIO/controle-pessoal.git
+
+PASSO 3.4 — Crie um token de acesso (o GitHub não aceita mais senha no push)
+  1. No GitHub: clique na sua foto → Settings.
+  2. No menu esquerdo, desça até "Developer settings".
+  3. "Personal access tokens" → "Tokens (classic)".
+  4. "Generate new token" → "Generate new token (classic)".
+  5. Note: controle-pessoal-push
+  6. Expiration: 90 days
+  7. Marque as caixas:
+       [x] repo
+       [x] workflow
+     (A caixa "workflow" é obrigatória porque o repositório tem arquivos em
+      .github/workflows.)
+  8. Clique em "Generate token".
+  9. Copie o token que começa com "ghp_..." e guarde. Ele só aparece uma vez.
+
+PASSO 3.5 — Envie o código (no terminal)
+  Rode os comandos abaixo, UM POR VEZ, na pasta do projeto:
+
+     cd /home/infra/Documentos/Pessoal/APP
+     git init
+     git branch -M main
+     git add .
+     git status
+
+  >>> PARE E CONFIRA O "git status" <<<
+  NÃO pode aparecer:
+     - .env
+     - codigo/Config.gs
+     - Ganhos-Gastos 2027.xlsx
+     - ganhos-gastos-backup-...tar.gz
+     - menina-do-sotao/
+     - node_modules/
+     - dist/ ou dist-web/
+  Se algum desses aparecer, NÃO faça o commit. Me avise.
+
+  Se estiver tudo certo:
+     git commit -m "Controle Pessoal: web, Linux, Windows e sincronizacao"
+     git remote add origin https://github.com/SEU_USUARIO/controle-pessoal.git
+     git push -u origin main
+
+  Troque SEU_USUARIO pelo seu usuário real do GitHub.
+
+  Quando o terminal pedir:
+     Username: seu-usuario-do-github
+     Password: cole o token ghp_... (nada aparece na tela; é normal)
+  Depois Enter.
+
+PASSO 3.6 — Confira no GitHub
+  1. Atualize a página do repositório.
+  2. Devem aparecer as pastas: .github, codigo, ganhos-gastos e os arquivos
+     PASSO-A-PASSO-ATUALIZACAO.txt, PROMPT-APP.md, README.md etc.
+  3. Confirme que NÃO existem: .env, codigo/Config.gs, planilha .xlsx,
+     backup .tar.gz.
+
+  OPCIONAL: o arquivo package.json tem o campo "homepage" com
+  "https://github.com/SEU_USUARIO/controle-pessoal". Se quiser que o .deb
+  mostre a URL do seu repositório, troque SEU_USUARIO pelo seu usuário.
+  Isso é só cosmético; não afeta o funcionamento.
+
+  OBSERVAÇÃO: o Config.gs real NÃO vai para o GitHub (tem a API_KEY). O que
+  vai é o codigo/Config.example.gs, com a chave vazia. Se um dia precisar
+  recriar o Config.gs, copie o example e preencha a chave.
+
+================================================================================
+ PARTE 4 — GITHUB PAGES: COLOCAR A VERSÃO WEB NO AR (VOCÊ FAZ)
+================================================================================
+
+PASSO 4.1 — Ative o Pages
+  1. No repositório: Settings → Pages.
+  2. Em "Build and deployment" → "Source", escolha:
+       GitHub Actions
+  3. Não precisa escolher branch nem pasta. O workflow já cuida disso.
+
+PASSO 4.2 — Rode a publicação
+  1. Abra a aba "Actions".
+  2. Se aparecer um botão para habilitar os workflows, clique em
+     "I understand my workflows, go ahead and enable them".
+  3. Clique em "Publicar versão web (GitHub Pages)".
+  3. Se ela já estiver rodando (foi disparada pelo push), espere.
+  4. Se não estiver, clique em "Run workflow" → branch main → "Run workflow".
+  5. Espere o check verde.
+  6. Abra o job "Publicar" e copie a URL que aparece em "github-pages".
+     Ela será parecida com:
+       https://SEU_USUARIO.github.io/controle-pessoal/
+
+PASSO 4.3 — Abra a versão web
+  1. Abra a URL no navegador.
+  2. Faça login com seu usuário e senha do app.
+  3. Se a tela ficar em branco, veja a Parte 8 (Problemas comuns).
+
+PASSO 4.4 — Instale como atalho (opcional, bom no celular)
+  - No Chrome/Edge: menu → "Instalar aplicativo" ou "Adicionar à tela inicial".
+  - No iPhone/Safari: Compartilhar → "Adicionar à Tela de Início".
+
+OBSERVAÇÕES
+  - Sempre que você enviar mudanças para a branch main, o site é atualizado
+    sozinho em 1–3 minutos.
+  - A versão web usa o mesmo login e a mesma planilha do desktop.
+
+================================================================================
+ PARTE 5 — GERAR E INSTALAR OS INSTALADORES (VOCÊ FAZ)
+================================================================================
+
+PASSO 5.1 — Gere os instaladores no GitHub Actions
+  1. No repositório: aba "Actions".
+  2. No menu esquerdo, clique em "Gerar instaladores (Linux + Windows)".
+  3. Clique em "Run workflow" → branch main → "Run workflow".
+  4. Espere. O Linux leva ~3–8 min; o Windows ~5–15 min.
+  5. Devem aparecer dois jobs verdes:
+       Linux (AppImage + .deb)
+       Windows (.exe)
+
+PASSO 5.2 — Baixe os artefatos
+  1. Clique na execução que terminou.
+  2. Role até "Artifacts".
+  3. Baixe:
+       controle-pessoal-linux  (ZIP com .AppImage e .deb)
+       controle-pessoal-win    (ZIP com .exe)
+  4. Extraia os ZIPs em uma pasta, por exemplo:
+       ~/Downloads/Controle Pessoal/Instaladores
+
+PASSO 5.3 — Instale no Linux
+  Opção A — .deb (recomendado no Ubuntu/Debian):
+     cd ~/Downloads/Controle\ Pessoal/Instaladores
+     sudo apt install ./ganhos-e-gastos_1.0.0_amd64.deb
+
+  Opção B — .AppImage (portátil, não instala):
+     chmod +x "Controle Pessoal-1.0.0.AppImage"
+     ./"Controle Pessoal-1.0.0.AppImage"
+
+  Se o .deb reclamar de dependências:
+     sudo apt --fix-broken install
+
+PASSO 5.4 — Instale no Windows
+  1. Copie o .exe para o notebook Windows.
+  2. Dê duplo clique.
+  3. Se aparecer "O Windows protegeu o computador":
+       Mais informações → Executar assim mesmo.
+  4. Escolha a pasta de instalação e conclua.
+  5. O atalho "Controle Pessoal" aparece na Área de Trabalho e no Menu Iniciar.
+
+PASSO 5.5 — Instaladores locais já prontos (Linux)
+  Se preferir não esperar o GitHub Actions para testar no Linux, use os
+  arquivos já gerados nesta máquina:
+     /home/infra/Documentos/Pessoal/APP/ganhos-gastos/dist/Controle Pessoal-1.0.0.AppImage
+     /home/infra/Documentos/Pessoal/APP/ganhos-gastos/dist/ganhos-e-gastos_1.0.0_amd64.deb
+  Eles já incluem a correção das férias e a sincronização.
+  Para o Windows, use o artefato do GitHub Actions (não é possível gerar .exe
+  confiável no Linux sem Windows/Wine).
+
+================================================================================
+ PARTE 6 — TESTES DE SINCRONIZAÇÃO, OFFLINE E BACKUP (VOCÊ FAZ)
+================================================================================
+
+PASSO 6.1 — Teste na web
+  1. Abra a versão web e faça login.
+  2. Abra Férias e confira o salário (ex.: 2829.94).
+  3. Abra Horas Extras e adicione um plantão de teste.
+  4. Abra "Sincronização" e clique em "Sincronizar agora".
+  5. O status deve ficar "Sincronizado" e a data/hora deve atualizar.
+
+PASSO 6.2 — Confira na planilha
+  1. Abra a planilha no Google Sheets.
+  2. Deve existir a aba DADOS_LOCAIS.
+  3. Ela deve ter linhas com VERSAO, SALVO_EM, PARTE, TOTAL_PARTES e JSON.
+  4. Não edite nada nessa aba.
+
+PASSO 6.3 — Teste no Linux
+  1. Abra o app Linux novo e faça login.
+  2. Abra "Sincronização" e clique em "Sincronizar agora".
+  3. O salário, o plantão de teste, as férias e a manutenção devem aparecer.
+
+PASSO 6.4 — Teste no Windows
+  1. Instale o .exe e faça login.
+  2. Abra "Sincronização" e clique em "Sincronizar agora".
+  3. Os mesmos dados devem aparecer.
+
+PASSO 6.5 — Teste offline
+  1. No notebook, desligue o Wi-Fi/internet.
+  2. Adicione um plantão ou altere o salário.
+  3. A tela de Sincronização deve indicar "pendente".
+  4. Feche e reabra o app: a alteração deve continuar lá.
+  5. Ligue a internet.
+  6. Clique em "Sincronizar agora" (ou espere até 30 segundos).
+  7. O status deve voltar para "Sincronizado".
+  8. Confira no outro aparelho se a alteração apareceu.
+
+  IMPORTANTE (versão web): o navegador guarda os dados no localStorage, mas
+  para ABRIR o site do zero ainda é preciso internet. O modo offline da web
+  funciona com a aba já aberta. Para uso sem internet desde o início, use o
+  app desktop ou o backup JSON (exportar/importar).
+
+PASSO 6.6 — Teste o backup em arquivo único
+  1. Abra "Sincronização".
+  2. Clique em "Exportar backup (.json)".
+  3. Salve o JSON no pendrive ou no Google Drive.
+  4. Em outro aparelho, abra "Sincronização" → "Importar backup".
+  5. Escolha o JSON.
+  6. Confira se os dados foram importados e sincronizados.
+
+REGRA DE CONFLITO
+  - Vale a última gravação (last-write-wins).
+  - Evite editar o MESMO registro em dois aparelhos ao mesmo tempo.
+  - Em caso de dúvida, clique em "Sincronizar agora" antes de editar.
+
+================================================================================
+ PARTE 7 — PENDRIVE / TROCA DE NOTEBOOK (VOCÊ FAZ)
+================================================================================
+
+1. Crie no pendrive uma pasta:
+     Controle Pessoal/Instaladores
+2. Copie para ela:
+     - Controle Pessoal-1.0.0.AppImage
+     - ganhos-e-gastos_1.0.0_amd64.deb
+     - Controle Pessoal Setup 1.0.0.exe (ou o nome que o GitHub gerar)
+3. Crie também:
+     Controle Pessoal/Backups
+   e salve ali o JSON exportado pelo app.
+4. No notebook novo:
+     - Linux: instale o .deb ou rode o .AppImage.
+     - Windows: rode o .exe.
+     - Faça login.
+     - Se precisar, importe o JSON do backup.
+5. O código-fonte também fica no GitHub; se um dia precisar reconstruir,
+   baixe o repositório e rode os comandos da Parte 10.
+
+================================================================================
+ PARTE 8 — PROBLEMAS COMUNS E SOLUÇÕES
+================================================================================
+
+1) "Ação real desconhecida: dadosLocais"
+   - O Auth.gs/Api.gs não foi atualizado OU a nova versão não foi publicada.
+   - Repita os passos 2.4, 2.5 e 2.6.
+   - Confirme em Gerenciar implantações se a versão ativa é a mais nova.
+
+2) "Token inválido ou expirado"
+   - Faça logout e login de novo.
+   - Se persistir, confira se o Auth.gs novo foi publicado.
+
+3) "Não autorizado" / erro de chave
+   - Confira no Apps Script se o Config.gs publicado tem a API_KEY correta.
+   - Confirme que a implantação está como "Qualquer pessoa".
+   - A chave não deve ser digitada no app; o proxy injeta sozinho.
+
+4) Versão web em branco ou 404
+   - Confirme Settings → Pages → Source = GitHub Actions.
+   - Confirme que o workflow "Publicar versão web" terminou verde.
+   - Espere 2–3 minutos e recarregue com Ctrl+F5.
+   - Confira se a URL termina com /controle-pessoal/.
+
+5) Login na web não funciona, mas no desktop sim
+   - A implantação do Apps Script pode estar restrita a "Qualquer pessoa com
+     conta Google". Mude para "Qualquer pessoa" e publique nova versão.
+   - Teste em uma janela anônima.
+   - Veja o console do navegador (F12 → Console) e me envie o erro.
+
+6) Sincronização fica "pendente"
+   - Confira a internet.
+   - Clique em "Sincronizar agora".
+   - Veja se a aba DADOS_LOCAIS existe.
+   - Se o erro for "JSON_INVALIDO", não edite a aba à mão; exporte o backup,
+     limpe as linhas de dados da DADOS_LOCAIS (mantenha o cabeçalho) e importe
+     o backup de novo.
+
+7) "Dados locais com versão inválida na planilha"
+   - Alguém editou a aba DADOS_LOCAIS à mão.
+   - Exporte o backup no aparelho que estiver correto, limpe a aba (só os
+     dados, mantenha o cabeçalho) e importe o backup.
+
+8) Windows: "O Windows protegeu o computador"
+   - É o SmartScreen porque o .exe não tem assinatura paga.
+   - Clique em "Mais informações" → "Executar assim mesmo".
+
+9) Linux: .deb com dependências faltando
+   - Rode: sudo apt --fix-broken install
+   - Depois: sudo apt install ./ganhos-e-gastos_1.0.0_amd64.deb
+
+10) GitHub Actions falhou
+   - Abra a execução vermelha, clique no job vermelho e copie o nome do passo
+     que falhou e a última mensagem de erro.
+   - Me envie esse texto. Os casos mais comuns são:
+       - Pages não ativado (Settings → Pages → GitHub Actions).
+       - Token sem o escopo "workflow" (refaça o PASSO 3.4).
+       - Falha de download do electron-builder (rode o workflow de novo).
+
+11) As férias ainda mostram o valor antigo
+   - Confirme que está usando o app NOVO (web atualizada ou instalador novo).
+   - Confirme o salário bruto na tela Férias.
+   - Registros antigos recalculam sozinhos; não precisa editar um por um.
+
+12) Quero trocar a URL da API no futuro
+   - Web: edite URL_PADRAO em
+     ganhos-gastos/src/renderer/services/apiWeb.ts e envie para o GitHub.
+   - Desktop: edite BASE_PADRAO em ganhos-gastos/src/main/config.ts e gere
+     novos instaladores (o app desktop não lê o apiWeb.ts).
+   - A URL do Apps Script só muda se você criar outra implantação.
+
+================================================================================
+ PARTE 9 — O QUE ME ENVIAR PARA EU CONFERIR
+================================================================================
+
+Depois de fazer as partes 1 a 6, me envie:
+
+  1. PRINT da tela Férias com 20 dias + 10 vendidos, mostrando o total.
+  2. PRINT da tela Sincronização depois de sincronizar (web e desktop).
+  3. A URL do GitHub Pages que apareceu.
+  4. PRINT da aba Actions com os dois jobs verdes (Linux e Windows).
+  5. Se algo falhar: copie o texto do erro (não só o print) e diga em qual
+     passo estava.
+
+Com isso eu confirmo se está tudo certo e corrijo o que faltar.
+
+================================================================================
+ PARTE 10 — COMANDOS ÚTEIS (PARA VOCÊ OU PARA MIM NO FUTURO)
+================================================================================
+
+Entrar na pasta do app:
+   cd /home/infra/Documentos/Pessoal/APP/ganhos-gastos
+
+Rodar em modo desenvolvimento:
+   npm run dev
+
+Conferir tipos:
+   npm run typecheck
+
+Gerar build desktop:
+   npm run build
+
+Gerar build web:
+   npm run build:web
+
+Gerar instaladores Linux:
+   npm run dist:linux
+
+Gerar instalador Windows (recomendado: GitHub Actions):
+   npm run dist:win
+   (no Linux pode exigir Wine; o caminho garantido é o workflow do GitHub
+    Actions, que roda em um Windows de verdade)
+
+Testar a versão web localmente:
+   npm run build:web
+   npm run preview:web
+
+Enviar atualizações para o GitHub:
+   cd /home/infra/Documentos/Pessoal/APP
+   git add .
+   git commit -m "Descricao da mudanca"
+   git push
+
+O GitHub Actions publica o site automaticamente a cada push na branch main.
+Os instaladores são gerados quando você roda o workflow manualmente ou cria
+uma tag "v*" (ex.: v1.0.0), conforme .github/workflows/.
+
+================================================================================
+ CHECKLIST FINAL (marque conforme for concluindo)
+================================================================================
+
+[ ] Férias 30 dias integral mostra R$ 3.773,25 (salário 2.829,94).
+[ ] Férias 20 dias + 10 vendidos mostra R$ 3.773,26 (não diminui; 1 centavo
+    a mais por arredondamento).
+[ ] Abono de 10 dias mostra R$ 1.257,75 (943,31 + 314,44).
+[ ] Os 4 arquivos do Apps Script foram atualizados.
+[ ] A nova versão do Apps Script foi publicada como "Qualquer pessoa".
+[ ] O repositório no GitHub foi criado e o código foi enviado.
+[ ] O GitHub Pages está com Source = GitHub Actions e o site abriu.
+[ ] Login funciona na web, no Linux e no Windows.
+[ ] Horas Extras/Férias/Manutenção/salário sincronizam entre os aparelhos.
+[ ] O modo offline mostra "pendente" e reenvia ao voltar a internet.
+[ ] O backup JSON foi exportado e importado com sucesso.
+[ ] Os instaladores Linux e Windows foram baixados e copiados no pendrive.
+
+================================================================================
+ FIM
+================================================================================

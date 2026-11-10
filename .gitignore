@@ -1,0 +1,43 @@
+# Dependências e artefatos de build
+node_modules/
+out/
+dist/
+dist-web/
+release/
+*.log
+.vite/
+
+# Configuração local (contém a API_KEY)
+.env
+.env.local
+
+# Segredos que NÃO devem ir para o GitHub
+codigo/Config.gs
+BACKUP-CONVERSA.txt
+
+# Dados pessoais / planilhas / backups (NÃO publicar)
+*.xlsx
+*.xls
+*.csv
+*.tar.gz
+*.zip
+*.7z
+Ganhos-Gastos*/
+ganhos-gastos-backup-*/
+confiraaqui
+
+# Projeto não relacionado a este app
+menina-do-sotao/
+
+# Instaladores gerados localmente (o GitHub Actions gera os oficiais)
+*.AppImage
+*.deb
+*.exe
+*.msi
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

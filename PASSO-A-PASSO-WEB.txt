@@ -1,0 +1,278 @@
+================================================================================
+ PASSO A PASSO DETALHADO — App Web "Ganhos & Gastos" (React + Vite + GitHub Pages)
+================================================================================
+Gerado em: 04/11/2026
+Local: /home/infra/Documentos/Pessoal/APP
+
+Este documento divide o trabalho em 3 partes:
+  PARTE 1 — O que VOCÊ faz sozinho (no Google Sheets / Apps Script)
+  PARTE 2 — O que o CHAT DEV faz (front-end React)
+  PARTE 3 — O que VOCÊ faz sozinho (deploy no GitHub Pages)
+
+Não pule etapas. A PARTE 1 deve estar pronta ANTES de enviar o prompt ao chat dev.
+================================================================================
+
+================================================================================
+ PARTE 1 — O QUE VOCÊ FAZ SOZINHO (Back-end: Google Apps Script)
+================================================================================
+Essas etapas preparam a API para autenticação e proxy. Sem isso, o front não
+consegue logar nem proteger a chave da API.
+
+--------------------------------------------------------------------------------
+ PASSO 1.1 — Criar a aba de usuários na planilha
+--------------------------------------------------------------------------------
+1. Abra sua planilha financeira no Google Sheets.
+2. Crie uma NOVA aba chamada exatamente: Usuarios
+3. Na linha 1 (cabeçalho), digite: USUARIO | SENHA | NOME | ATIVO
+4. Na linha 2, insira seu acesso, exemplo:
+   admin | minhassenha123 | Eu | SIM
+   (coloque a senha que quiser; anote-a, precisará dela para logar no app)
+5. Salve a planilha.
+
+--------------------------------------------------------------------------------
+ PASSO 1.2 — Adicionar o arquivo Auth.gs no Apps Script
+--------------------------------------------------------------------------------
+1. Abra o editor do Apps Script da sua planilha.
+2. Crie um NOVO arquivo chamado: Auth.gs
+3. Cole o conteúdo inteiro abaixo e salve (Ctrl+S):
+
+/**
+ * AUTENTICAÇÃO E PROXY — App Web "Ganhos & Gastos".
+ * Cole este conteúdo em um NOVO arquivo chamado Auth.gs.
+ * Depois adicione os casos 'login', 'verificar' e 'proxy' no doPost de Api.gs.
+ */
+
+var TOKEN_EXPIRACAO_MS = 24 * 60 * 60 * 1000; // 24 horas
+var CHAVE_TOKEN = 'TOKEN_SESSAO_USUARIO';
+
+function funcaoLogin(usuario, senha) {
+  if (!usuario || !senha) {
+    return erro('Informe usuário e senha.', 'CREDENCIAIS_INVALIDAS');
+  }
+  var ss = getSS();
+  var aba = ss.getSheetByName('Usuarios');
+  if (!aba) {
+    return erro('Aba "Usuarios" não encontrada na planilha.', 'CONFIG_INVALIDA');
+  }
+  var dados = aba.getDataRange().getValues();
+  var cabecalho = dados[0];
+  for (var i = 1; i < dados.length; i++) {
+    var linha = {};
+    for (var j = 0; j < cabecalho.length; j++) {
+      linha[cabecalho[j]] = dados[i][j];
+    }
+    if (linha.USUARIO === usuario && linha.SENHA === senha && linha.ATIVO === 'SIM') {
+      var token = gerarToken();
+      salvarToken(token, usuario);
+      return { sucesso: true, token: token, usuario: usuario, nome: linha.NOME || usuario };
+    }
+  }
+  return erro('Usuário ou senha inválidos.', 'CREDENCIAIS_INVALIDAS');
+}
+
+function funcaoVerificar(token) {
+  if (!token) return { sucesso: false, codigo: 'TOKEN_INVALIDO' };
+  var info = lerToken(token);
+  if (!info) return { sucesso: false, codigo: 'TOKEN_INVALIDO' };
+  return { sucesso: true, usuario: info.usuario };
+}
+
+function funcaoProxy(corpo) {
+  if (!corpo || !corpo.token) {
+    return erro('Token não informado.', 'TOKEN_INVALIDO');
+  }
+  var info = lerToken(corpo.token);
+  if (!info) return erro('Token inválido ou expirado. Faça login novamente.', 'TOKEN_INVALIDO');
+
+  var acaoReal = corpo.acao_real;
+  var params = {};
+  for (var k in corpo) {
+    if (k !== 'token' && k !== 'acao_real') params[k] = corpo[k];
+  }
+  params.chave = CONFIG.API_KEY; // injeta a chave secreta — o front NÃO vê isso
+
+  switch (acaoReal) {
+    case 'ano':
+      return json(servicoAnoCompleto(parseInt(params.ano, 10)));
+    case 'abas':
+      return json(listarAbasDados());
+    case 'listas':
+      return json({ listas: CONFIG.LISTAS });
+    case 'listar':
+      return json(servicoListar(params.aba, { tipoTabela: params.tabela }));
+    case 'adicionar':
+      return json(servicoAdicionar(params.aba, params.dados, { tipoTabela: params.tabela }));
+    case 'editar':
+      return json(servicoEditar(params.aba, parseInt(params.linha, 10), params.dados, { tipoTabela: params.tabela }));
+    case 'remover':
+      return json(servicoRemover(params.aba, parseInt(params.linha, 10), { tipoTabela: params.tabela }));
+    case 'criarAno':
+      return json(servicoCriarAno(parseInt(params.ano, 10)));
+    case 'atualizarDashboard':
+      return json(atualizarAbaDashboard(parseInt(params.ano, 10), params.agrupar));
+    case 'dashboard':
+      return json(servicoDashboard(parseInt(params.ano, 10), params.agrupar));
+    default:
+      return erro('Ação real desconhecida: ' + acaoReal, 'ACAO_INVALIDA');
+  }
+}
+
+function gerarToken() {
+  return 'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+}
+
+function salvarToken(token, usuario) {
+  var props = PropertiesService.getScriptProperties();
+  var chave = CHAVE_TOKEN + '_' + token;
+  props.setProperty(chave, JSON.stringify({ usuario: usuario, exp: new Date().getTime() + TOKEN_EXPIRACAO_MS }));
+}
+
+function lerToken(token) {
+  var props = PropertiesService.getScriptProperties();
+  var chave = CHAVE_TOKEN + '_' + token;
+  var txt = props.getProperty(chave);
+  if (!txt) return null;
+  var info = JSON.parse(txt);
+  if (new Date().getTime() > info.exp) {
+    props.deleteProperty(chave);
+    return null;
+  }
+  return info;
+}
+
+--------------------------------------------------------------------------------
+ PASSO 1.3 — Conectar o Auth.gs ao doPost existente
+--------------------------------------------------------------------------------
+1. Abra o arquivo Api.gs no editor do Apps Script.
+2. Localize a função doPost e o bloco switch (p.acao).
+3. Adicione estes três casos dentro do switch:
+
+  case 'login':
+    return json(funcaoLogin(corpo.usuario, corpo.senha));
+  case 'verificar':
+    return json(funcaoVerificar(corpo.token));
+  case 'proxy':
+    return json(funcaoProxy(corpo));
+
+4. Salve (Ctrl+S).
+
+--------------------------------------------------------------------------------
+ PASSO 1.4 — Salvar e publicar a nova versão
+--------------------------------------------------------------------------------
+1. Salve todos os arquivos alterados no editor do Apps Script.
+2. Implantar → Gerenciar implantações → caneta ✏️
+3. Confirme: "Quem tem acesso: Qualquer pessoa" (NÃO mude para Somente eu).
+4. Clique em Implantar → Nova versão → Implantar.
+5. Anote a URL do campo "URL do aplicativo da web". Ela termina em /exec.
+   Exemplo: https://script.google.com/macros/s/AKfycb.../exec
+   Guarde essa URL — você precisará dela nos próximos passos.
+
+--------------------------------------------------------------------------------
+ PASSO 1.5 — Testar o login pelo navegador (aba anônima)
+--------------------------------------------------------------------------------
+1. Abra uma janela anônima (Ctrl+Shift+N).
+2. Envie um POST para sua URL com corpo JSON:
+   https://SUA_URL/exec
+   Body: { "usuario": "admin", "senha": "minhassenha123", "acao": "login" }
+   (use o usuário/senha que cadastrou na aba Usuarios)
+3. Resultado esperado:
+   { "sucesso": true, "token": "tk_...", "usuario": "admin", "nome": "admin" }
+
+4. Teste também o proxy com um token:
+   Body: { "token": "SEU_TOKEN", "acao_real": "abas" }
+   Esperado: lista das abas da planilha.
+
+Se funcionar, a PARTE 1 está concluída. Guarde a URL do /exec.
+
+================================================================================
+ PARTE 2 — O QUE O CHAT DEV FAZ (Front-end React + Vite)
+================================================================================
+Envie para o chat dev:
+  1. O conteúdo inteiro do arquivo PROMPT-APP.md (já atualizado para web).
+  2. A URL do seu /exec (anotada no Passo 1.4).
+  3. O conteúdo do arquivo codigo/tipos/api-types.ts (contrato de tipos).
+  4. Instrução: usar fetch() direto para a URL do Apps Script, usar a ação
+     'login' para autenticar e a ação 'proxy' para todas as chamadas de dados.
+     A API_KEY NUNCA deve ficar exposta no front-end.
+
+O chat dev entregará o código-fonte do front-end (React + Vite + TypeScript).
+
+================================================================================
+ PARTE 3 — O QUE VOCÊ FAZ SOZINHO (Deploy no GitHub Pages)
+================================================================================
+--------------------------------------------------------------------------------
+ PASSO 3.1 — Criar o repositório no GitHub
+--------------------------------------------------------------------------------
+1. Acesse github.com e crie um repositório novo, exemplo: ganhos-gastos-web
+   (público ou privado, como preferir).
+2. Envie o código que o chat dev entregou para esse repositório.
+
+--------------------------------------------------------------------------------
+ PASSO 3.2 — Configurar o GitHub Actions para GitHub Pages
+--------------------------------------------------------------------------------
+No repositório, crie a pasta .github/workflows e dentro dela o arquivo deploy.yml:
+
+  name: Deploy to GitHub Pages
+  on:
+    push:
+      branches: [ main ]
+  jobs:
+    build-and-deploy:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
+          with:
+            node-version: '18'
+        - run: npm install
+        - run: npm run build
+        - uses: peaceiris/actions-gh-pages@v4
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+            publish_dir: ./dist
+
+--------------------------------------------------------------------------------
+ PASSO 3.3 — Ativar o GitHub Pages
+--------------------------------------------------------------------------------
+1. No repositório GitHub: Settings → Pages → Build and deployment
+2. Source: GitHub Actions
+3. Aguarde o primeiro deploy (verifique na aba Actions).
+4. O site ficará disponível em:
+   https://SEU_USUARIO.github.io/NOME_DO_REPOSITORIO/
+
+--------------------------------------------------------------------------------
+ PASSO 3.4 — Configurar a URL da API (se necessário)
+--------------------------------------------------------------------------------
+O PROMPT-APP.md deixa a URL do Apps Script embutida no código. Se o chat dev
+usou variável de ambiente VITE_API_URL:
+
+Localmente: crie .env com
+  VITE_API_URL=https://script.google.com/macros/s/SEU_ID/exec
+
+No GitHub: Settings → Secrets and variables → Actions → New repository secret
+  Nome: VITE_API_URL
+  Valor: https://script.google.com/macros/s/SEU_ID/exec
+
+--------------------------------------------------------------------------------
+ PASSO 3.5 — Usar o app
+--------------------------------------------------------------------------------
+1. Acesse o link do GitHub Pages em qualquer navegador/celular.
+2. Faça login com o usuário/senha cadastrados na aba Usuarios da planilha.
+3. O app carrega os dados da sua planilha via Apps Script.
+4. O backup automático de 15 dias continua rodando no Google Drive
+   (não depende do front web).
+
+================================================================================
+ RESUMO DO FLUXO FINAL
+================================================================================
+Você (navegador qualquer lugar)
+      ↓  fetch
+GitHub Pages (front web gratuito)
+      ↓  fetch + token
+Apps Script /exec?acao=login      (valida usuário/senha)
+Apps Script /exec?acao=proxy      (injeta API_KEY e chama funções de dados)
+      ↓
+Sua planilha no Google Sheets
+
+Backup: mantido no Google Drive via gatilho de 15 dias (já instalado na PARTE 1).
+================================================================================

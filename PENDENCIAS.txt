@@ -1,0 +1,65 @@
+================================================================================
+ PENDÊNCIAS — Projeto "Ganhos & Gastos"
+================================================================================
+Atualizado em: 03/11/2026
+
+--------------------------------------------------------------------------------
+1. [ ] ⚠ PUBLICAR A API_KEY (SEGURANÇA — a API está ABERTA para a internet)
+--------------------------------------------------------------------------------
+Testado em 03/11/2026: testar-api → 2 OK / 3 FALHA.
+  · GET sem chave → funciona (deveria bloquear)
+  · GET com chave errada → funciona (deveria bloquear)
+  · POST sem chave → executa (deveria bloquear)
+Ou seja: a versão publicada ainda está com API_KEY vazia, mesmo que o
+Config.gs local já esteja com a chave preenchida.
+
+Como corrigir (5 minutos, ordem importa):
+  1. Abrir o editor do Apps Script → Config.gs → confirmar a linha 148 com a
+     chave. Se estiver vazia (''), colar o conteúdo inteiro de
+     codigo/Config.gs → salvar (Ctrl+S).
+  2. Implantar → Gerenciar implantações → caneta ✏️ →
+     "Quem tem acesso" = Qualquer pessoa → Nova versão → Implantar.
+  3. Rodar:  testar-api
+     Resultado esperado: "5 OK, 0 FALHA(S)".
+
+--------------------------------------------------------------------------------
+2. [ ] CRIAR A PLANILHA_MODELO E O BACKUP AUTOMÁTICO (no editor do Apps Script)
+--------------------------------------------------------------------------------
+O arquivo codigo/Backup.gs já está pronto (sintaxe validada). Falta você:
+  1. Abrir o editor do Apps Script → novo arquivo → nome "Backup"
+     → colar o conteúdo de codigo/Backup.gs → salvar.
+  2. (Opcional) recolar codigo/Inicializacao.gs — mudou só num comentário
+     que lista os passos 4 e 5.
+  3. No seletor de funções (topo do editor), escolher
+     "passo4_criarPlanilhaModelo" → ▶ Executar → autorizar permissões.
+     → cria a "Planilha_modelo" (planilha vazia, estrutura intacta).
+  4. Escolher "passo5_instalarBackup15dias" → ▶ Executar.
+     → cria a 1ª cópia de segurança AGORA e instala o backup automático
+       (a cada 15 dias, às 3h, no servidor do Google).
+  5. Conferir no Google Drive: as cópias aparecem na mesma pasta da planilha.
+
+--------------------------------------------------------------------------------
+3. [ ] ENVIAR O PROMPT DOS INSTALADORES AO OUTRO CHAT
+--------------------------------------------------------------------------------
+O prompt está pronto e inteiro em:  BACKUP-CONVERSA.txt  (seção 8).
+Ele pede: electron-builder (Windows .exe + Linux AppImage/.deb), chave embutida
+no instalador (CHAVE_PADRAO), despesas.bat para Windows e instruções no README.
+
+--------------------------------------------------------------------------------
+4. [ ] DEPOIS QUE O OUTRO CHAT ENTREGAR
+--------------------------------------------------------------------------------
+  · Rodar npm run dist:linux (e dist:win) na pasta ganhos-gastos
+  · Testar se o AppImage abre e carrega os dados
+  · Levar release/ + esta pasta para o Windows (ver WINDOWS-instalar-e-gerenciar.txt)
+  · Conferir se testar-api continua com 5 OK
+
+--------------------------------------------------------------------------------
+NOTAS RÁPIDAS
+--------------------------------------------------------------------------------
+· NÃO confundir: erro NAO_AUTORIZADO = problema de chave;
+  ACAO_INVALIDA = versão antiga da API; 302/Google = acesso "Somente eu".
+· 1ª chamada da API pode demorar ~30s (cold start) — normal.
+· Áreas Férias, Hora Extra e Manutenção C4: adiadas (o usuário falou
+  "acrescentaremos depois").
+· Comercialização: descartada por enquanto (uso próprio).
+================================================================================
